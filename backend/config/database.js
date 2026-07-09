@@ -3,12 +3,23 @@ require('dotenv').config();
 
 let sequelize;
 
-if (process.env.DATABASE_URL) {
-  const isMysql = process.env.DATABASE_URL.startsWith('mysql:');
-  const dialect = isMysql ? 'mysql' : 'postgres';
+const databaseUrl = process.env.DATABASE_URL;
+
+if (databaseUrl) {
+  const normalizedUrl = databaseUrl.trim();
+  let dialect = 'postgres';
+
+  if (normalizedUrl.startsWith('sqlite:')) {
+    dialect = 'sqlite';
+  } else if (normalizedUrl.startsWith('mysql:')) {
+    dialect = 'mysql';
+  } else if (normalizedUrl.startsWith('postgres:') || normalizedUrl.startsWith('postgresql:')) {
+    dialect = 'postgres';
+  }
+
   console.log(`Connecting using DATABASE_URL... Dialect: ${dialect}`);
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: dialect,
+  sequelize = new Sequelize(normalizedUrl, {
+    dialect,
     logging: false,
     dialectOptions: {
       ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
@@ -22,13 +33,11 @@ if (process.env.DATABASE_URL) {
     dialect: 'mysql',
     logging: false
   });
-} else if (process.env.NODE_ENV === 'production') {
-  throw new Error('Production database configuration missing. Set DATABASE_URL or DB_* environment variables.');
 } else {
-  console.warn('Neither DATABASE_URL nor DB_HOST/DB_USER/DB_NAME set. Falling back to SQLite for local development.');
+  console.warn('No database configuration found. Falling back to SQLite for this deployment.');
   sequelize = new Sequelize({
     dialect: 'sqlite',
-    storage: './database.sqlite',
+    storage: process.env.SQLITE_PATH || './database.sqlite',
     logging: false
   });
 }
