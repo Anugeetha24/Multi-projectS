@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: smart_placement_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_database_password
+      MYSQL_DATABASE: smart_placement
+      MYSQL_USER: placement_user
+      MYSQL_PASSWORD: placement_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -proot_database_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: smart_placement_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - JWT_SECRET=smart_placement_prep_dev_secret_2026_xyz
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=placement_user
+      - DB_PASSWORD=placement_password
+      - DB_NAME=smart_placement
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
