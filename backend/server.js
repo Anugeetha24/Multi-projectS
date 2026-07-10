@@ -38,6 +38,26 @@ app.get('/status', (req, res) => {
   });
 });
 
+// Serve frontend assets if available
+const staticPath = path.join(__dirname, 'dist');
+app.use(express.static(staticPath));
+
+// Root health check route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Backend is running successfully 🚀',
+    status: 'OK'
+  });
+});
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path === '/status') {
+    return next();
+  }
+  res.sendFile(path.join(staticPath, 'index.html'));
+});
+
 // Centralized error handler
 app.use((err, req, res, next) => {
   console.error('[Express Error Handler]:', err);
